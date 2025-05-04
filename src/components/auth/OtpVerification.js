@@ -1,4 +1,4 @@
-// src/components/auth/OtpVerification.js
+// src/components/auth/OtpVerification.js - Improved with better auth flow
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -8,7 +8,7 @@ import config from '../../config/config';
 function OtpVerification() {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendCountdown, setResendCountdown] = useState(30);
   const { authToken, verifyOTP, phoneNumber, activeSession, scanTable, sendOTP } = useAuth();
   const navigate = useNavigate();
   const timerRef = useRef(null);
@@ -73,32 +73,45 @@ function OtpVerification() {
 
     try {
       setIsLoading(true);
+      // Verify OTP - this will set the token and update auth state
       const response = await verifyOTP(otp);
 
       if (response.status === 'success') {
         toast.success('OTP verified successfully');
+        console.log('OTP verification successful, checking for pending table');
 
-        // Check if there's a pending table ID and scan it automatically
+        // Check if there's a pending table ID to scan
         const pendingTableId = localStorage.getItem(config.storage.pendingTableId);
-        if (pendingTableId) {
-          try {
-            const scanResponse = await scanTable(pendingTableId);
-            if (scanResponse.status === 'success') {
-              localStorage.removeItem(config.storage.pendingTableId);
-              navigate('/table-session');
-              return;
+        
+        // Add a small delay to ensure token is properly set in axios headers
+        setTimeout(async () => {
+          if (pendingTableId) {
+            try {
+              console.log('Scanning pending table:', pendingTableId);
+              const scanResponse = await scanTable(pendingTableId);
+              
+              if (scanResponse.status === 'success') {
+                localStorage.removeItem(config.storage.pendingTableId);
+                navigate('/table-session');
+                return;
+              }
+            } catch (error) {
+              console.error('Table scan error:', error);
+              toast.error('Failed to connect to table. Please try again.');
             }
-          } catch (error) {
-            toast.error('Failed to connect to table. Please try again.');
           }
-        }
 
-        // If no table ID or scanning failed, go to profile
-        navigate('/profile');
+          // If no table ID or scanning failed, go to profile after a delay
+          // This delay helps ensure the auth state is fully updated
+          setTimeout(() => {
+            console.log('Redirecting to profile page');
+            navigate('/profile');
+          }, 500);
+        }, 1000);
       }
     } catch (error) {
+      console.error('OTP verification error:', error);
       toast.error(error.message || 'Failed to verify OTP');
-    } finally {
       setIsLoading(false);
     }
   };

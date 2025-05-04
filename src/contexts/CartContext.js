@@ -14,30 +14,33 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  // Get auth state
-  const { authToken } = useAuth();
+  // Get auth context for authentication status
+  const { authToken, isAuthenticating } = useAuth();
 
-  // Load cart from API ONLY when authenticated
+  // Only fetch cart when authenticated AND not in authentication process
   useEffect(() => {
-    // Only fetch cart if the user is authenticated
-    if (authToken) {
+    if (authToken && !isAuthenticating) {
+      console.log('Authenticated & stable - fetching cart');
       fetchCart();
     } else {
+      console.log('Not authenticated or still authenticating - reset cart');
       // Reset cart state when not authenticated
       setCart([]);
       setTotal(0);
       setLoading(false);
     }
-  }, [authToken]); // Only run when authToken changes
+  }, [authToken, isAuthenticating]); // Run when auth status changes
 
   const fetchCart = useCallback(async () => {
     // Don't try to fetch if not authenticated
-    if (!authToken) {
+    if (!authToken || isAuthenticating) {
+      console.log('Skipping cart fetch - not authenticated or still in auth process');
       return;
     }
     
     try {
       setLoading(true);
+      console.log('Fetching cart data...');
       const response = await getCart();
       
       if (response.status === 'success' && response.data) {
@@ -56,17 +59,18 @@ export function CartProvider({ children }) {
         
         setCart(formattedCart);
         setTotal(response.data.totalAmount || 0);
+        console.log('Cart loaded successfully');
       }
     } catch (error) {
       console.error('Error fetching cart:', error);
       // Only show toast message if authenticated - prevents infinite error messages
-      if (authToken) {
+      if (authToken && !isAuthenticating) {
         toast.error('Failed to load your cart');
       }
     } finally {
       setLoading(false);
     }
-  }, [authToken]);
+  }, [authToken, isAuthenticating]);
 
   // Add item to cart - with auth check
   const addItemToCart = async (product, quantity = 1, selectedAddons = [], specialInstructions = '') => {
@@ -78,7 +82,6 @@ export function CartProvider({ children }) {
     
     try {
       setLoading(true);
-      // Rest of function remains the same...
       
       // Optimistically update UI - add item to local cart first
       const tempId = `temp-${Date.now()}`;
@@ -135,7 +138,6 @@ export function CartProvider({ children }) {
     
     try {
       setLoading(true);
-      // Rest of function implementation remains the same
       // Find current item to get new quantity
       const item = cart.find(item => item.id === itemId);
       if (!item) return;
