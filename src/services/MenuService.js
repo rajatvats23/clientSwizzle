@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use port 5000 for backend API calls
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://192.168.10.251:5000/api';
 
 // Set up axios defaults
 axios.defaults.baseURL = API_BASE_URL;

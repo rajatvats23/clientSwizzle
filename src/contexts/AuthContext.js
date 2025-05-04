@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   const [activeSession, setActiveSession] = useState(null);
 
   // Set up Axios default base URL - pointing to backend port
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = 'http://192.168.10.251:5000/api';
   axios.defaults.baseURL = API_BASE_URL;
 
   // Update axios headers whenever token changes
@@ -63,6 +63,12 @@ export function AuthProvider({ children }) {
     try {
       const response = await axios.post('/customer/send-otp', { phoneNumber });
       setPhoneNumber(phoneNumber);
+      
+      // Store OTP in localStorage for development auto-fill
+      if (process.env.NODE_ENV === 'development' && response.data.data && response.data.data.otp) {
+        localStorage.setItem('dev_otp', response.data.data.otp);
+      }
+      
       return response.data;
     } catch (error) {
       throw error.response ? error.response.data : { message: 'Network error' };
@@ -110,6 +116,9 @@ export function AuthProvider({ children }) {
   // Scan table QR code
   const scanTable = async (qrCodeIdentifier) => {
     try {
+      // Clear any pending table ID 
+      localStorage.removeItem('pendingTableId');
+      
       const response = await axios.post(`/customer/scan-table/${qrCodeIdentifier}`);
       
       if (response.data.status === 'success') {
@@ -123,6 +132,7 @@ export function AuthProvider({ children }) {
       
       return response.data;
     } catch (error) {
+      localStorage.removeItem('pendingTableId');
       throw error.response ? error.response.data : { message: 'Network error' };
     }
   };

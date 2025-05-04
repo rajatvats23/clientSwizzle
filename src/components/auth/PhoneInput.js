@@ -1,31 +1,32 @@
+// src/components/auth/PhoneInput.js - Replace with:
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 
-function PhoneInput({ pendingTableId }) {
+function PhoneInput() {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { authToken, sendOTP, activeSession } = useAuth();
   const navigate = useNavigate();
   const params = useParams();
   
-  // Check if there's a QR code in the URL parameters
+  // Get table ID from URL parameters
   const qrCodeIdentifier = params.qrCodeIdentifier;
 
   useEffect(() => {
-    // If user is already authenticated, redirect to profile or table session
+    // If user is already authenticated, redirect appropriately
     if (authToken) {
       if (activeSession) {
         navigate('/table-session');
-      } else if (qrCodeIdentifier || pendingTableId) {
-        // If there's a QR code in the URL, scan it directly
+      } else if (qrCodeIdentifier) {
+        // Store table ID and proceed to scanning
+        localStorage.setItem('pendingTableId', qrCodeIdentifier);
         navigate('/scan');
-      } else {
-        navigate('/profile');
       }
     }
-  }, [authToken, activeSession, navigate, qrCodeIdentifier, pendingTableId]);
+  }, [authToken, activeSession, navigate, qrCodeIdentifier]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,14 +41,12 @@ function PhoneInput({ pendingTableId }) {
       const response = await sendOTP(phone);
       
       if (response.status === 'success') {
-        // Store pending table ID if present
+        // Store table ID from URL if present
         if (qrCodeIdentifier) {
           localStorage.setItem('pendingTableId', qrCodeIdentifier);
-        } else if (pendingTableId) {
-          localStorage.setItem('pendingTableId', pendingTableId);
         }
         
-        // If response contains OTP (for development), show it in a toast
+        // Show OTP for development if available
         if (response.data && response.data.otp) {
           toast.info(`Development OTP: ${response.data.otp}`);
         }
@@ -63,11 +62,11 @@ function PhoneInput({ pendingTableId }) {
 
   return (
     <div className="container">
-      <h1>Restaurant Customer App</h1>
+      <h1>Welcome to Restaurant</h1>
       
-      {(qrCodeIdentifier || pendingTableId) && (
+      {qrCodeIdentifier && (
         <div className="message success">
-          Please login to access table {qrCodeIdentifier || pendingTableId}
+          Please login to access your table
         </div>
       )}
       

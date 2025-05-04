@@ -41,14 +41,12 @@ function App() {
           <div className="app-container">
             <ToastContainer position="top-center" />
             <Routes>
-              <Route path="/" element={<PhoneInput pendingTableId={pendingTableId} />} />
-              <Route path="/verify-otp" element={<OtpVerification pendingTableId={pendingTableId} />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/scan" element={<QrScanner />} />
-              <Route path="/table-session" element={<TableSession />} />
-              <Route path="/table/:qrCodeIdentifier" element={<PhoneInput />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+  <Route path="/" element={<PhoneInput />} />
+  <Route path="/verify-otp" element={<OtpVerification />} />
+  <Route path="/table-session" element={<TableSession />} />
+  <Route path="/table/:qrCodeIdentifier" element={<PhoneInput />} />
+  <Route path="*" element={<Navigate to="/" replace />} />
+</Routes>
           </div>
         </Router>
       </CartProvider>

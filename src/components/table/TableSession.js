@@ -1,3 +1,5 @@
+// src/components/table/TableSession.js - Replace with:
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -7,6 +9,7 @@ import TabCart from './TabCart';
 import TabSession from './TabSession';
 
 function TableSession() {
+  // Set menu as default tab
   const [activeTab, setActiveTab] = useState('menu');
   const [isLoading, setIsLoading] = useState(true);
   const { authToken, activeSession, logout } = useAuth();
@@ -20,7 +23,7 @@ function TableSession() {
     }
     
     if (!activeSession) {
-      navigate('/profile');
+      navigate('/');
       return;
     }
     
@@ -29,11 +32,6 @@ function TableSession() {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
   };
 
   if (isLoading) {
@@ -61,17 +59,13 @@ function TableSession() {
           className={`tab ${activeTab === 'session' ? 'active' : ''}`}
           onClick={() => handleTabChange('session')}
         >
-          Session
+          Table
         </div>
       </div>
       
       {activeTab === 'menu' && <TabMenu />}
       {activeTab === 'cart' && <TabCart />}
       {activeTab === 'session' && <TabSession />}
-      
-      <button onClick={handleLogout} className="back-button">
-        Logout
-      </button>
     </div>
   );
 }
