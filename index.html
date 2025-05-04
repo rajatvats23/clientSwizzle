@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Customer App</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .section {
+            display: none;
+            margin-top: 20px;
+        }
+        .active {
+            display: block;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        #reader {
+            width: 100%;
+            margin-top: 15px;
+        }
+        .profile-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+        .qr-result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9f7ef;
+            border-radius: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Restaurant Customer App</h1>
+        
+        <!-- Phone Number Section -->
+        <div id="phoneSection" class="section active">
+            <div class="form-group">
+                <label for="phoneNumber">Enter your phone number</label>
+                <input type="tel" id="phoneNumber" placeholder="+919876543210" required>
+            </div>
+            <button id="sendOtpBtn">Send OTP</button>
+            <div id="phoneMessage" class="message"></div>
+        </div>
+        
+        <!-- OTP Verification Section -->
+        <div id="otpSection" class="section">
+            <div class="form-group">
+                <label for="otp">Enter OTP sent to your phone</label>
+                <input type="text" id="otp" placeholder="123456" maxlength="6">
+            </div>
+            <button id="verifyOtpBtn">Verify OTP</button>
+            <div id="otpMessage" class="message"></div>
+        </div>
+        
+        <!-- Profile Section -->
+        <div id="profileSection" class="section">
+            <h2>Welcome! You are logged in.</h2>
+            <div class="profile-info" id="profileInfo"></div>
+            
+            <div class="form-group">
+                <label for="name">Your Name (Optional)</label>
+                <input type="text" id="name" placeholder="Enter your name">
+            </div>
+            <button id="updateProfileBtn">Update Profile</button>
+            
+            <div style="margin-top: 20px;">
+                <button id="scanQRBtn">Scan Table QR Code</button>
+            </div>
+            <div id="profileMessage" class="message"></div>
+        </div>
+        
+        <!-- QR Scanner Section -->
+        <div id="scannerSection" class="section">
+            <h2>Scan Table QR Code</h2>
+            <div id="reader"></div>
+            <div id="qrResult" class="qr-result"></div>
+            <button id="backToProfileBtn" style="margin-top: 15px;">Back to Profile</button>
+        </div>
+        
+        <!-- Table Session Section -->
+        <div id="tableSection" class="section">
+            <h2>Your Table Session</h2>
+            <div id="tableInfo" class="profile-info"></div>
+            <button id="checkoutBtn">Checkout from Table</button>
+            <div id="tableMessage" class="message"></div>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_BASE_URL = 'http://localhost:5000/api';
+        
+        // DOM Elements
+        const phoneSection = document.getElementById('phoneSection');
+        const otpSection = document.getElementById('otpSection');
+        const profileSection = document.getElementById('profileSection');
+        const scannerSection = document.getElementById('scannerSection');
+        const tableSection = document.getElementById('tableSection');
+        
+        const phoneNumberInput = document.getElementById('phoneNumber');
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
+        const phoneMessage = document.getElementById('phoneMessage');
+        
+        const otpInput = document.getElementById('otp');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const otpMessage = document.getElementById('otpMessage');
+        
+        const profileInfo = document.getElementById('profileInfo');
+        const nameInput = document.getElementById('name');
+        const updateProfileBtn = document.getElementById('updateProfileBtn');
+        const scanQRBtn = document.getElementById('scanQRBtn');
+        const profileMessage = document.getElementById('profileMessage');
+        
+        const reader = document.getElementById('reader');
+        const qrResult = document.getElementById('qrResult');
+        const backToProfileBtn = document.getElementById('backToProfileBtn');
+        
+        const tableInfo = document.getElementById('tableInfo');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const tableMessage = document.getElementById('tableMessage');
+        
+        // State variables
+        let authToken = localStorage.getItem('authToken') || null;
+        let qrScanner = null;
+        
+        // Check if token exists and validate it
+        function checkAuth() {
+            if (authToken) {
+                // Show profile section
+                showSection(profileSection);
+                fetchProfile();
+            }
+        }
+        
+        // Show a specific section and hide others
+        function showSection(section) {
+            [phoneSection, otpSection, profileSection, scannerSection, tableSection].forEach(s => {
+                s.classList.remove('active');
+            });
+            section.classList.add('active');
+        }
+        
+        // Show message
+        function showMessage(element, message, isError = false) {
+            element.textContent = message;
+            element.classList.remove('success', 'error');
+            element.classList.add(isError ? 'error' : 'success');
+        }
+        
+        // Send OTP
+        sendOtpBtn.addEventListener('click', async () => {
+            const phoneNumber = phoneNumberInput.value.trim();
+            if (!phoneNumber) {
+                showMessage(phoneMessage, 'Please enter your phone number', true);
+                return;
+            }
+            
+            try {
+                sendOtpBtn.disabled = true;
+                sendOtpBtn.textContent = 'Sending...';
+                
+                const response = await fetch(`${API_BASE_URL}/customer/send-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phoneNumber })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showMessage(phoneMessage, 'OTP sent successfully');
+                    showSection(otpSection);
+                    // In development, if OTP is returned for testing
+                    if (data.data && data.data.otp) {
+                        showMessage(otpMessage, `Development OTP: ${data.data.otp}`);
+                    }
+                } else {
+                    showMessage(phoneMessage, data.message || 'Failed to send OTP', true);
+                }
+            } catch (error) {
+                showMessage(phoneMessage, error.message || 'An error occurred', true);
+            } finally {
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.textContent = 'Send OTP';
+            }
+        });
+        
+        // Verify OTP
+        verifyOtpBtn.addEventListener('click', async () => {
+            const phoneNumber = phoneNumberInput.value.trim();
+            const otp = otpInput.value.trim();
+            
+            if (!otp) {
+                showMessage(otpMessage, 'Please enter the OTP', true);
+                return;
+            }
+            
+            try {
+                verifyOtpBtn.disabled = true;
+                verifyOtpBtn.textContent = 'Verifying...';
+                
+                const response = await fetch(`${API_BASE_URL}/customer/verify-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ phoneNumber, otp })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.data.token) {
+                    authToken = data.data.token;
+                    localStorage.setItem('authToken', authToken);
+                    showMessage(otpMessage, 'OTP verified successfully');
+                    fetchProfile();
+                    showSection(profileSection);
+                } else {
+                    showMessage(otpMessage, data.message || 'Failed to verify OTP', true);
+                }
+            } catch (error) {
+                showMessage(otpMessage, error.message || 'An error occurred', true);
+            } finally {
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.textContent = 'Verify OTP';
+            }
+        });
+        
+        // Fetch user profile
+        async function fetchProfile() {
+            if (!authToken) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/customer/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    // Token expired or invalid
+                    logout();
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.data.customer) {
+                    const customer = data.data.customer;
+                    profileInfo.innerHTML = `
+                        <p><strong>Phone:</strong> ${customer.phoneNumber}</p>
+                        <p><strong>Name:</strong> ${customer.name || 'Not set'}</p>
+                    `;
+                    
+                    // Pre-fill name field
+                    if (customer.name) {
+                        nameInput.value = customer.name;
+                    }
+                    
+                    // Check if customer has active session
+                    if (customer.currentSession && customer.currentSession.active) {
+                        fetchTableInfo();
+                        showSection(tableSection);
+                    }
+                } else {
+                    showMessage(profileMessage, data.message || 'Failed to load profile', true);
+                }
+            } catch (error) {
+                showMessage(profileMessage, error.message || 'An error occurred', true);
+            }
+        }
+        
+        // Update profile
+        updateProfileBtn.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            
+            try {
+                updateProfileBtn.disabled = true;
+                updateProfileBtn.textContent = 'Updating...';
+                
+                const response = await fetch(`${API_BASE_URL}/customer/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showMessage(profileMessage, 'Profile updated successfully');
+                    fetchProfile();
+                } else {
+                    showMessage(profileMessage, data.message || 'Failed to update profile', true);
+                }
+            } catch (error) {
+                showMessage(profileMessage, error.message || 'An error occurred', true);
+            } finally {
+                updateProfileBtn.disabled = false;
+                updateProfileBtn.textContent = 'Update Profile';
+            }
+        });
+        
+        // Initialize QR Scanner
+        scanQRBtn.addEventListener('click', () => {
+            showSection(scannerSection);
+            initQRScanner();
+        });
+        
+        function initQRScanner() {
+            if (qrScanner) {
+                qrScanner.resume();
+                return;
+            }
+            
+            qrScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            qrScanner.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            );
+        }
+        
+        function onScanSuccess(qrCodeIdentifier) {
+            qrScanner.pause();
+            qrResult.textContent = `QR Code detected: ${qrCodeIdentifier}`;
+            
+            // Check if this is a valid table QR code (usually would check format)
+            scanTable(qrCodeIdentifier);
+        }
+        
+        function onScanFailure(error) {
+            // Handle scan failure silently
+            console.log(error);
+        }
+        
+        // Scan table with QR code
+        async function scanTable(qrCodeIdentifier) {
+            try {
+                qrResult.textContent = 'Processing table scan...';
+                
+                const response = await fetch(`${API_BASE_URL}/customer/scan-table/${qrCodeIdentifier}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    qrResult.textContent = `Successfully started session at table ${data.data.table.tableNumber}`;
+                    
+                    // Stop the scanner and clean up
+                    if (qrScanner) {
+                        qrScanner.stop();
+                        qrScanner = null;
+                    }
+                    
+                    // Fetch table info and show table section
+                    setTimeout(() => {
+                        fetchTableInfo();
+                        showSection(tableSection);
+                    }, 1000);
+                } else {
+                    qrResult.textContent = data.message || 'Failed to process table scan';
+                }
+            } catch (error) {
+                qrResult.textContent = error.message || 'An error occurred';
+            }
+        }
+        
+        // Fetch table session info
+        async function fetchTableInfo() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/customer/profile`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success' && data.data.customer) {
+                    const customer = data.data.customer;
+                    
+                    if (customer.currentSession && customer.currentSession.active) {
+                        const session = customer.currentSession;
+                        tableInfo.innerHTML = `
+                            <p><strong>Session Active</strong></p>
+                            <p><strong>Restaurant:</strong> ${session.restaurant}</p>
+                            <p><strong>Table:</strong> ${session.table}</p>
+                            <p><strong>Started:</strong> ${new Date(session.startTime).toLocaleString()}</p>
+                        `;
+                    } else {
+                        // No active session, go back to profile
+                        showSection(profileSection);
+                    }
+                }
+            } catch (error) {
+                showMessage(tableMessage, error.message || 'An error occurred', true);
+            }
+        }
+        
+        // Checkout from table
+        checkoutBtn.addEventListener('click', async () => {
+            try {
+                checkoutBtn.disabled = true;
+                checkoutBtn.textContent = 'Processing...';
+                
+                const response = await fetch(`${API_BASE_URL}/customer/checkout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showMessage(tableMessage, 'Successfully checked out from table');
+                    
+                    // Go back to profile after checkout
+                    setTimeout(() => {
+                        showSection(profileSection);
+                        fetchProfile();
+                    }, 1500);
+                } else {
+                    showMessage(tableMessage, data.message || 'Failed to checkout', true);
+                    checkoutBtn.disabled = false;
+                    checkoutBtn.textContent = 'Checkout from Table';
+                }
+            } catch (error) {
+                showMessage(tableMessage, error.message || 'An error occurred', true);
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = 'Checkout from Table';
+            }
+        });
+        
+        // Back to profile button
+        backToProfileBtn.addEventListener('click', () => {
+            if (qrScanner) {
+                qrScanner.stop();
+                qrScanner = null;
+            }
+            showSection(profileSection);
+        });
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            authToken = null;
+            showSection(phoneSection);
+        }
+        
+        // Initialize app
+        checkAuth();
+    </script>
+</body>
+</html>
