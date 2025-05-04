@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/components/table/TabMenu.js
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useCart } from '../../contexts/CartContext';
 import { fetchMenu } from '../../services/MenuService';
@@ -7,18 +8,16 @@ function TabMenu() {
   const [menuData, setMenuData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const { addToCart, loading: cartLoading } = useCart();
 
-  useEffect(() => {
-    loadMenu();
-  }, []);
-
-  const loadMenu = async () => {
+  // Load menu with retry mechanism
+  const loadMenu = useCallback(async (forceRefresh = false) => {
     try {
       setIsLoading(true);
       setErrorMessage('');
       
-      const response = await fetchMenu();
+      const response = await fetchMenu(forceRefresh);
       
       if (response.status === 'success') {
         setMenuData(response.data);
@@ -30,17 +29,43 @@ function TabMenu() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadMenu();
+  }, [loadMenu]);
 
   const handleAddToCart = (product) => {
     addToCart(product);
   };
 
-  const renderCategory = (category) => {
-    // Get products for this category
-    const products = menuData.products.filter(
-      product => product.category && product.category._id === category._id
+  // Filter products based on search term
+  const getFilteredProducts = (products, categoryId) => {
+    if (!searchTerm.trim()) {
+      // If no search term, just return products for this category
+      return products.filter(
+        product => product.category && product.category._id === categoryId
+      );
+    }
+    
+    // Filter by search term and category
+    const searchLower = searchTerm.toLowerCase();
+    return products.filter(
+      product => 
+        product.category && 
+        product.category._id === categoryId &&
+        (
+          product.name.toLowerCase().includes(searchLower) ||
+          (product.description && product.description.toLowerCase().includes(searchLower))
+        )
     );
+  };
+
+  const renderCategory = (category) => {
+    if (!menuData || !menuData.products) return null;
+    
+    // Get products for this category
+    const products = getFilteredProducts(menuData.products, category._id);
     
     if (products.length === 0) return null;
     
@@ -78,7 +103,7 @@ function TabMenu() {
     return (
       <div className="message error">
         {errorMessage}
-        <button onClick={loadMenu} className="add-button">
+        <button onClick={() => loadMenu(true)} className="add-button">
           Retry
         </button>
       </div>
@@ -89,9 +114,64 @@ function TabMenu() {
     return <div className="message">No menu items available</div>;
   }
 
+  // Count total products
+  const totalProducts = menuData.products.length;
+  
+  // Count filtered products
+  const filteredProductCount = searchTerm.trim() 
+    ? menuData.products.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.description && 
+         product.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      ).length
+    : totalProducts;
+
   return (
     <div>
+      {/* Search box */}
+      <div className="form-group">
+        <input
+          type="text"
+          placeholder="Search menu items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+      </div>
+      
+      {searchTerm.trim() && (
+        <div className="info-box" style={{ marginBottom: '10px' }}>
+          Found {filteredProductCount} items matching "{searchTerm}"
+          {filteredProductCount === 0 && (
+            <button 
+              onClick={() => setSearchTerm('')}
+              className="add-button"
+              style={{ marginLeft: '10px' }}
+            >
+              Clear Search
+            </button>
+          )}
+        </div>
+      )}
+      
+      {/* Render categories with their products */}
       {menuData.categories.map(renderCategory)}
+      
+      {/* If filtered but no results */}
+      {searchTerm.trim() && filteredProductCount === 0 && (
+        <div className="message">
+          No menu items match your search. Try different keywords.
+        </div>
+      )}
+      
+      {/* Refresh button */}
+      <button 
+        onClick={() => loadMenu(true)} 
+        className="back-button"
+        style={{ marginTop: '20px' }}
+      >
+        Refresh Menu
+      </button>
     </div>
   );
 }

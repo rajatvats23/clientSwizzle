@@ -1,3 +1,4 @@
+// src/components/profile/Profile.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -6,7 +7,16 @@ import { useAuth } from '../../contexts/AuthContext';
 function Profile() {
   const [name, setName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  const { authToken, customer, loading, updateProfile, logout, activeSession } = useAuth();
+  const { 
+    authToken, 
+    customer, 
+    loading, 
+    updateProfile, 
+    logout, 
+    activeSession,
+    isLocalEnvironment 
+  } = useAuth();
+  
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -84,6 +94,17 @@ function Profile() {
       
       <button onClick={() => navigate('/scan')} className="add-button">
         Scan Table QR Code
+      </button>
+      
+      {isLocalEnvironment && (
+        <button onClick={() => navigate('/select-table')} className="add-button">
+          Select Table (Dev)
+        </button>
+      )}
+      
+      {/* Add order history button */}
+      <button onClick={() => navigate('/orders')} className="add-button">
+        Order History
       </button>
       
       <button onClick={handleLogout} className="back-button">

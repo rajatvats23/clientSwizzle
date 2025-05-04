@@ -1,3 +1,4 @@
+/* src/App.css - Optimized and enhanced CSS */
 * {
   box-sizing: border-box;
   font-family: Arial, sans-serif;
@@ -7,6 +8,8 @@ body {
   margin: 0;
   padding: 0;
   background-color: #f5f5f5;
+  color: #333;
+  line-height: 1.6;
 }
 
 .app-container {
@@ -43,12 +46,36 @@ label {
   font-weight: bold;
 }
 
-input, select {
+input, select, textarea {
   width: 100%;
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 5px;
   font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+input.error {
+  border-color: #f44336;
+}
+
+.error-message {
+  color: #f44336;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.helper-text {
+  color: #666;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
 }
 
 button {
@@ -61,6 +88,11 @@ button {
   font-size: 16px;
   cursor: pointer;
   margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #45a049;
 }
 
 button:disabled {
@@ -91,21 +123,31 @@ button:disabled {
   margin-top: 15px;
 }
 
+/* Tabs styling */
 .tabs {
   display: flex;
   margin-bottom: 20px;
   border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab {
-  padding: 10px 15px;
+  padding: 10px 20px;
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.3s;
 }
 
 .tab.active {
   border-bottom: 2px solid #4CAF50;
   font-weight: bold;
+  color: #4CAF50;
+}
+
+.tab:hover {
+  background-color: #f9f9f9;
 }
 
 /* Menu styles */
@@ -115,18 +157,26 @@ button:disabled {
 
 .category-header {
   background-color: #f1f1f1;
-  padding: 10px;
+  padding: 12px;
   border-radius: 5px;
   margin-bottom: 10px;
   font-weight: bold;
+  letter-spacing: 0.5px;
 }
 
 .product-card {
-  border: 1px solid #ddd;
+  border: 1px solid #eee;
   border-radius: 5px;
-  padding: 10px;
-  margin-bottom: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
   position: relative;
+  transition: all 0.3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.product-card:hover {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transform: translateY(-1px);
 }
 
 .product-name {
@@ -137,13 +187,14 @@ button:disabled {
 .product-price {
   color: #4CAF50;
   font-weight: bold;
+  margin-bottom: 8px;
 }
 
 .product-description {
   color: #666;
   font-size: 14px;
   margin-top: 5px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .add-button {
@@ -151,10 +202,11 @@ button:disabled {
   color: white;
   border: none;
   border-radius: 5px;
-  padding: 5px 10px;
+  padding: 8px 15px;
   cursor: pointer;
   font-size: 14px;
   width: auto;
+  margin-top: 0;
 }
 
 /* Cart styles */
@@ -162,14 +214,20 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.3s;
+}
+
+.cart-item:hover {
+  background-color: #f9f9f9;
 }
 
 .cart-total {
-  margin-top: 15px;
+  margin-top: 20px;
   font-weight: bold;
   text-align: right;
+  font-size: 18px;
 }
 
 .quantity-control {
@@ -178,20 +236,30 @@ button:disabled {
 }
 
 .quantity-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   margin: 0 5px;
+  border-radius: 50%;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .quantity {
-  margin: 0 5px;
+  margin: 0 8px;
+  font-weight: bold;
 }
 
 /* QR scanner styles */
 .scanner-container {
   width: 100%;
-  margin-top: 15px;
+  margin: 15px 0;
+  border-radius: 5px;
+  overflow: hidden;
+  min-height: 300px;
+  background-color: #f0f0f0;
 }
 
 /* Back button */
@@ -200,26 +268,31 @@ button:disabled {
   margin-top: 15px;
 }
 
+.back-button:hover {
+  background-color: #5a6268;
+}
+
 /* Loading spinner */
 .loading {
   text-align: center;
   padding: 20px;
+  color: #666;
 }
-
-/* Add to App.css */
 
 /* Order History styles */
 .order-card {
-  border: 1px solid #ddd;
+  border: 1px solid #eee;
   border-radius: 5px;
   padding: 15px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .order-card:hover {
   background-color: #f9f9f9;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 /* Special instructions */
@@ -228,25 +301,69 @@ button:disabled {
   font-style: italic;
   color: #666;
   margin-top: 5px;
+  padding: 5px 0;
 }
 
-textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-  margin-bottom: 10px;
-  font-family: inherit;
+/* Resend OTP */
+.resend-text {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #666;
 }
 
-/* Add to App.css */
-select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-  background-color: white;
-  margin-bottom: 10px;
+.resend-button {
+  background: none;
+  border: none;
+  color: #4CAF50;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  width: auto;
+  text-decoration: underline;
+}
+
+.resend-button:hover {
+  color: #45a049;
+  background: none;
+}
+
+.resend-button:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  text-decoration: none;
+  background: none;
+}
+
+/* Search input */
+.search-input {
+  padding-left: 35px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 10px center;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 480px) {
+  .container {
+    padding: 15px;
+  }
+  
+  h1 {
+    font-size: 20px;
+  }
+  
+  .tabs {
+    overflow-x: auto;
+  }
+  
+  .tab {
+    padding: 8px 15px;
+    font-size: 14px;
+  }
+  
+  .product-card {
+    padding: 12px;
+  }
 }

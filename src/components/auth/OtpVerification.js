@@ -1,25 +1,52 @@
-// src/components/auth/OtpVerification.js - Replace with:
-
-import React, { useState, useEffect } from 'react';
+// src/components/auth/OtpVerification.js
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
+import config from '../../config/config';
 
 function OtpVerification() {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { authToken, verifyOTP, phoneNumber, activeSession, scanTable } = useAuth();
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const { authToken, verifyOTP, phoneNumber, activeSession, scanTable, sendOTP } = useAuth();
   const navigate = useNavigate();
+  const timerRef = useRef(null);
 
+  // Set up resend countdown
+  useEffect(() => {
+    // Start with 30 seconds
+    setResendCountdown(30);
+    
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    // Set up timer to count down
+    timerRef.current = setInterval(() => {
+      setResendCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    
+    // Cleanup on unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Auto-populate OTP in development mode if available
-    // This checks for the OTP in localStorage, which we'll set during sendOTP
-    const devOtp = localStorage.getItem('dev_otp');
-    if (process.env.NODE_ENV === 'development' && devOtp) {
+    const devOtp = localStorage.getItem(config.storage.devOtp);
+    if (config.isDevelopment && devOtp) {
       setOtp(devOtp);
-      // Optionally auto-submit after a delay
-      // setTimeout(() => handleSubmit(new Event('submit')), 1000);
     }
   }, []);
 
@@ -52,12 +79,12 @@ function OtpVerification() {
         toast.success('OTP verified successfully');
 
         // Check if there's a pending table ID and scan it automatically
-        const pendingTableId = localStorage.getItem('pendingTableId');
+        const pendingTableId = localStorage.getItem(config.storage.pendingTableId);
         if (pendingTableId) {
           try {
             const scanResponse = await scanTable(pendingTableId);
             if (scanResponse.status === 'success') {
-              localStorage.removeItem('pendingTableId');
+              localStorage.removeItem(config.storage.pendingTableId);
               navigate('/table-session');
               return;
             }
@@ -76,27 +103,103 @@ function OtpVerification() {
     }
   };
 
+  const handleResendOTP = async () => {
+    if (resendCountdown > 0 || !phoneNumber) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await sendOTP(phoneNumber);
+      
+      if (response.status === 'success') {
+        toast.success('OTP resent successfully');
+        
+        // Show OTP for development if available
+        if (response.data && response.data.otp && config.isDevelopment) {
+          toast.info(`Development OTP: ${response.data.otp}`);
+          localStorage.setItem(config.storage.devOtp, response.data.otp);
+        }
+        
+        // Reset countdown
+        setResendCountdown(30);
+        
+        // Restart timer
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+        }
+        
+        timerRef.current = setInterval(() => {
+          setResendCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timerRef.current);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to resend OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Format phone number for display
+  const formatPhoneForDisplay = (phone) => {
+    if (!phone) return '';
+    
+    // If phone is longer than 10 digits and contains country code
+    if (phone.length > 10) {
+      // For displaying, assume last 10 digits are the actual number
+      const countryCode = phone.slice(0, phone.length - 10);
+      const number = phone.slice(phone.length - 10);
+      
+      // Format as +XX XXXXX XXXXX
+      return `${countryCode} ${number.slice(0, 5)} ${number.slice(5)}`;
+    }
+    
+    // Just format as XXXXX XXXXX
+    return `${phone.slice(0, 5)} ${phone.slice(5)}`;
+  };
+
   return (
     <div className="container">
       <h1>Verify OTP</h1>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="otp">Enter OTP sent to {phoneNumber}</label>
+          <label htmlFor="otp">Enter OTP sent to {formatPhoneForDisplay(phoneNumber)}</label>
           <input
             type="text"
             id="otp"
             value={otp}
-            onChange={(e) => setOtp(e.target.value)}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
             placeholder="123456"
             maxLength="6"
             required
+            autoComplete="one-time-code"
           />
+          <small className="helper-text">Enter the 6-digit OTP sent to your phone</small>
         </div>
 
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Verifying...' : 'Verify OTP'}
         </button>
+        
+        <p className="resend-text">
+          {resendCountdown > 0 ? (
+            `Resend OTP in ${resendCountdown} seconds`
+          ) : (
+            <button 
+              type="button" 
+              className="resend-button"
+              onClick={handleResendOTP}
+              disabled={isLoading}
+            >
+              Resend OTP
+            </button>
+          )}
+        </p>
       </form>
 
       <button
@@ -109,6 +212,5 @@ function OtpVerification() {
     </div>
   );
 }
-
 
 export default OtpVerification;

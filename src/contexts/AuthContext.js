@@ -1,5 +1,8 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+// src/contexts/AuthContext.js
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
+import config from '../config/config';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
@@ -8,15 +11,17 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const [authToken, setAuthToken] = useState(localStorage.getItem('authToken') || null);
+  const [authToken, setAuthToken] = useState(localStorage.getItem(config.storage.authToken) || null);
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [activeSession, setActiveSession] = useState(null);
+  const [isLocalEnvironment, setIsLocalEnvironment] = useState(false);
 
-  // Set up Axios default base URL - pointing to backend port
-  const API_BASE_URL = 'http://localhost:5000/api';
-  axios.defaults.baseURL = API_BASE_URL;
+  // Set up Axios default base URL
+  useEffect(() => {
+    axios.defaults.baseURL = config.API_BASE_URL;
+  }, []);
 
   // Update axios headers whenever token changes
   useEffect(() => {
@@ -30,15 +35,12 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }
     
-    // Check if we're on localhost and should enable the table selection feature
-    setIsLocalEnvironment(isLocalhost());
+    // Check if we're on localhost 
+    setIsLocalEnvironment(config.isLocalhost());
   }, [authToken]);
 
-  const [isLocalEnvironment, setIsLocalEnvironment] = useState(false);
-  
-
-  // Fetch user profile
-  const fetchProfile = async () => {
+  // Fetch user profile - memoized with useCallback to prevent unnecessary re-renders
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/customer/profile');
@@ -57,17 +59,13 @@ export function AuthProvider({ children }) {
       console.error('Error fetching profile:', error);
       if (error.response && error.response.status === 401) {
         // Token expired, log out
+        toast.error('Your session has expired. Please login again.');
         logout();
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const isLocalhost = () => {
-    return window.location.hostname === 'localhost' || 
-           window.location.hostname === '127.0.0.1';
-  };
+  }, []);
 
   // Send OTP
   const sendOTP = async (phoneNumber) => {
@@ -76,8 +74,8 @@ export function AuthProvider({ children }) {
       setPhoneNumber(phoneNumber);
       
       // Store OTP in localStorage for development auto-fill
-      if (process.env.NODE_ENV === 'development' && response.data.data && response.data.data.otp) {
-        localStorage.setItem('dev_otp', response.data.data.otp);
+      if (config.isDevelopment && response.data.data && response.data.data.otp) {
+        localStorage.setItem(config.storage.devOtp, response.data.data.otp);
       }
       
       return response.data;
@@ -96,7 +94,7 @@ export function AuthProvider({ children }) {
       
       if (response.data.status === 'success' && response.data.data.token) {
         const token = response.data.data.token;
-        localStorage.setItem('authToken', token);
+        localStorage.setItem(config.storage.authToken, token);
         setAuthToken(token);
       }
       
@@ -128,7 +126,7 @@ export function AuthProvider({ children }) {
   const scanTable = async (qrCodeIdentifier) => {
     try {
       // Clear any pending table ID 
-      localStorage.removeItem('pendingTableId');
+      localStorage.removeItem(config.storage.pendingTableId);
       
       const response = await axios.post(`/customer/scan-table/${qrCodeIdentifier}`);
       
@@ -143,7 +141,7 @@ export function AuthProvider({ children }) {
       
       return response.data;
     } catch (error) {
-      localStorage.removeItem('pendingTableId');
+      localStorage.removeItem(config.storage.pendingTableId);
       throw error.response ? error.response.data : { message: 'Network error' };
     }
   };
@@ -164,12 +162,15 @@ export function AuthProvider({ children }) {
   };
 
   // Logout
-  const logout = () => {
-    localStorage.removeItem('authToken');
+  const logout = useCallback(() => {
+    localStorage.removeItem(config.storage.authToken);
     setAuthToken(null);
     setCustomer(null);
     setActiveSession(null);
-  };
+    // Clear other session data
+    localStorage.removeItem(config.storage.pendingTableId);
+    localStorage.removeItem(config.storage.devOtp);
+  }, []);
 
   const value = {
     authToken,
