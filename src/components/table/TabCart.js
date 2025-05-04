@@ -5,7 +5,8 @@ import { placeOrder } from '../../services/MenuService';
 
 function TabCart() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const { cart, total, updateQuantity, removeFromCart, clearCart } = useCart();
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  const { cart, total, loading, updateQuantity, removeFromCart, clearCart, refreshCart } = useCart();
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) {
@@ -16,18 +17,14 @@ function TabCart() {
     try {
       setIsPlacingOrder(true);
       
-      // Format cart items for API
-      const orderItems = cart.map(item => ({
-        productId: item.id,
-        quantity: item.quantity,
-        price: item.price
-      }));
-      
-      const response = await placeOrder(orderItems);
+      const response = await placeOrder(specialInstructions);
       
       if (response.status === 'success') {
         toast.success('Order placed successfully!');
-        clearCart();
+        // No need to call clearCart since the API already cleared it
+        // Just refresh to get the empty cart
+        refreshCart();
+        setSpecialInstructions('');
       } else {
         toast.error(response.message || 'Failed to place order');
       }
@@ -37,6 +34,10 @@ function TabCart() {
       setIsPlacingOrder(false);
     }
   };
+
+  if (loading) {
+    return <div className="loading">Loading your cart...</div>;
+  }
 
   if (cart.length === 0) {
     return (
@@ -56,12 +57,18 @@ function TabCart() {
           <div>
             <div><strong>{item.name}</strong></div>
             <div>${item.price.toFixed(2)} × {item.quantity}</div>
+            {item.specialInstructions && (
+              <div className="special-instructions">
+                Note: {item.specialInstructions}
+              </div>
+            )}
           </div>
           
           <div className="quantity-control">
             <button 
               className="quantity-btn"
               onClick={() => updateQuantity(item.id, -1)}
+              disabled={loading}
             >
               -
             </button>
@@ -71,6 +78,7 @@ function TabCart() {
             <button 
               className="quantity-btn"
               onClick={() => updateQuantity(item.id, 1)}
+              disabled={loading}
             >
               +
             </button>
@@ -79,6 +87,7 @@ function TabCart() {
               className="quantity-btn"
               onClick={() => removeFromCart(item.id)}
               style={{ marginLeft: '10px' }}
+              disabled={loading}
             >
               ×
             </button>
@@ -90,9 +99,21 @@ function TabCart() {
         Total: ${total.toFixed(2)}
       </div>
       
+      <div className="form-group">
+        <label htmlFor="special-instructions">Special Instructions (Optional)</label>
+        <textarea
+          id="special-instructions"
+          value={specialInstructions}
+          onChange={(e) => setSpecialInstructions(e.target.value)}
+          placeholder="Any special instructions for your order?"
+          rows={3}
+          disabled={isPlacingOrder}
+        />
+      </div>
+      
       <button 
         onClick={handlePlaceOrder}
-        disabled={isPlacingOrder}
+        disabled={isPlacingOrder || loading}
       >
         {isPlacingOrder ? 'Processing...' : 'Place Order'}
       </button>
@@ -100,7 +121,7 @@ function TabCart() {
       <button 
         onClick={clearCart}
         className="back-button"
-        disabled={isPlacingOrder}
+        disabled={isPlacingOrder || loading}
       >
         Clear Cart
       </button>

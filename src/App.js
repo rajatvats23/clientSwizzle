@@ -6,13 +6,12 @@ import 'react-toastify/dist/ReactToastify.css';
 // Import components with correct casing
 import PhoneInput from './components/auth/PhoneInput';
 import OtpVerification from './components/auth/OtpVerification';
-import Profile from './components/profile/Profile';
-import QrScanner from './components/table/QrScanner';
 import TableSession from './components/table/TableSession';
 
 // Import contexts
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { OrderHistory } from './components/table/OrderHistory';
 import './App.css';
 
 function App() {
@@ -45,6 +44,8 @@ function App() {
   <Route path="/verify-otp" element={<OtpVerification />} />
   <Route path="/table-session" element={<TableSession />} />
   <Route path="/table/:qrCodeIdentifier" element={<PhoneInput />} />
+  <Route path="/orders" element={<OrderHistory />} />
+  <Route path="/select-table" element={<TableSelection />} />
   <Route path="*" element={<Navigate to="/" replace />} />
 </Routes>
           </div>

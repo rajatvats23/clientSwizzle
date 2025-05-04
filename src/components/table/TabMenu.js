@@ -7,7 +7,7 @@ function TabMenu() {
   const [menuData, setMenuData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-  const { addToCart } = useCart();
+  const { addToCart, loading: cartLoading } = useCart();
 
   useEffect(() => {
     loadMenu();
@@ -34,7 +34,6 @@ function TabMenu() {
 
   const handleAddToCart = (product) => {
     addToCart(product);
-    toast.success(`${product.name} added to cart`);
   };
 
   const renderCategory = (category) => {
@@ -61,8 +60,9 @@ function TabMenu() {
             <button 
               className="add-button"
               onClick={() => handleAddToCart(product)}
+              disabled={cartLoading}
             >
-              Add to Order
+              {cartLoading ? 'Adding...' : 'Add to Order'}
             </button>
           </div>
         ))}

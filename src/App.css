@@ -205,3 +205,48 @@ button:disabled {
   text-align: center;
   padding: 20px;
 }
+
+/* Add to App.css */
+
+/* Order History styles */
+.order-card {
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.order-card:hover {
+  background-color: #f9f9f9;
+}
+
+/* Special instructions */
+.special-instructions {
+  font-size: 14px;
+  font-style: italic;
+  color: #666;
+  margin-top: 5px;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+
+/* Add to App.css */
+select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
+  background-color: white;
+  margin-bottom: 10px;
+}

@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   const [activeSession, setActiveSession] = useState(null);
 
   // Set up Axios default base URL - pointing to backend port
-  const API_BASE_URL = 'http://192.168.10.251:5000/api';
+  const API_BASE_URL = 'http://localhost:5000/api';
   axios.defaults.baseURL = API_BASE_URL;
 
   // Update axios headers whenever token changes
@@ -29,7 +29,13 @@ export function AuthProvider({ children }) {
       setActiveSession(null);
       setLoading(false);
     }
+    
+    // Check if we're on localhost and should enable the table selection feature
+    setIsLocalEnvironment(isLocalhost());
   }, [authToken]);
+
+  const [isLocalEnvironment, setIsLocalEnvironment] = useState(false);
+  
 
   // Fetch user profile
   const fetchProfile = async () => {
@@ -56,6 +62,11 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const isLocalhost = () => {
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1';
   };
 
   // Send OTP
@@ -166,6 +177,7 @@ export function AuthProvider({ children }) {
     loading,
     phoneNumber,
     activeSession,
+    isLocalEnvironment,
     sendOTP,
     verifyOTP,
     updateProfile,
